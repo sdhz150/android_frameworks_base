@@ -44,6 +44,7 @@ import com.android.systemui.recents.events.activity.HideRecentsEvent;
 import com.android.systemui.recents.events.ui.StackViewScrolledEvent;
 import com.android.systemui.recents.events.ui.TaskViewDismissedEvent;
 import com.android.systemui.recents.misc.FreePathInterpolator;
+import com.android.systemui.shared.recents.model.TaskStack;
 import com.android.systemui.shared.recents.utilities.AnimationProps;
 import com.android.systemui.shared.recents.utilities.Utilities;
 import com.android.systemui.shared.recents.model.Task;
@@ -102,6 +103,8 @@ class TaskStackViewTouchHandler implements SwipeHelper.Callback {
     private ArrayMap<View, Animator> mSwipeHelperAnimations = new ArrayMap<>();
     private TaskViewTransform mTmpTransform = new TaskViewTransform();
     private float mTargetStackScroll;
+
+    private TaskStack mTaskStack;
 
     SwipeHelper mSwipeHelper;
     boolean mInterceptedBySwipeHelper;
@@ -437,7 +440,7 @@ class TaskStackViewTouchHandler implements SwipeHelper.Callback {
     @Override
     public View getChildAtPosition(MotionEvent ev) {
         TaskView tv = findViewAtPoint((int) ev.getX(), (int) ev.getY());
-        if (tv != null && canChildBeDismissed(tv)) {
+        if (tv != null && (canChildBeDismissed(tv) || mTaskStack.sLockedTasks.contains(tv.getTask()))) {
             return tv;
         }
         return null;
@@ -448,7 +451,7 @@ class TaskStackViewTouchHandler implements SwipeHelper.Callback {
         // Disallow dismissing an already dismissed task
         TaskView tv = (TaskView) v;
         Task task = tv.getTask();
-        return !mSwipeHelperAnimations.containsKey(v) &&
+        return !mSwipeHelperAnimations.containsKey(v) && !mTaskStack.sLockedTasks.contains(task) && 
                 (mSv.getStack().indexOfTask(task) != -1);
     }
 

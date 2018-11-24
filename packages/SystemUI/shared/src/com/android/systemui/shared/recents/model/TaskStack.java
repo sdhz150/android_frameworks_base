@@ -20,6 +20,7 @@ import android.content.ComponentName;
 import android.util.ArrayMap;
 import android.util.ArraySet;
 
+import com.android.systemui.shared.recents.model.Task;
 import com.android.systemui.shared.recents.model.Task.TaskKey;
 import com.android.systemui.shared.recents.utilities.AnimationProps;
 import com.android.systemui.shared.system.PackageManagerWrapper;
@@ -27,7 +28,8 @@ import com.android.systemui.shared.system.PackageManagerWrapper;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * The task stack contains a list of multiple tasks.
@@ -61,6 +63,7 @@ public class TaskStack {
         void onStackTasksUpdated(TaskStack stack);
     }
 
+    public final static Set<Task> sLockedTasks = new HashSet<>();
     private final ArrayList<Task> mRawTaskList = new ArrayList<>();
     private final FilteredTaskList mStackTaskList = new FilteredTaskList();
     private TaskStackCallbacks mCb;
@@ -89,6 +92,9 @@ public class TaskStack {
      */
     public void removeTask(Task t, AnimationProps animation, boolean fromDockGesture,
             boolean dismissRecentsIfAllRemoved) {
+        if (sLockedTasks.contains(t)) {
+            sLockedTasks.remove(t);
+        }
         if (mStackTaskList.contains(t)) {
             mStackTaskList.remove(t);
             Task newFrontMostTask = getFrontMostTask();
@@ -108,6 +114,9 @@ public class TaskStack {
         ArrayList<Task> tasks = mStackTaskList.getTasks();
         for (int i = tasks.size() - 1; i >= 0; i--) {
             Task t = tasks.get(i);
+            if (sLockedTasks.contains(t)) {
+                continue;
+            }
             mStackTaskList.remove(t);
             mRawTaskList.remove(t);
         }
