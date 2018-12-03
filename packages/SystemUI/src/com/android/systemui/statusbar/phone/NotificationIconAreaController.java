@@ -348,6 +348,11 @@ public class NotificationIconAreaController implements DarkReceiver {
         updateShelfIcons();
     }
 
+    public void setFullyDark(boolean fullyDark) {
+        mFullyDark = fullyDark;
+        updateShelfIcons();
+    }
+
     public void setDark(boolean dark) {
         mNotificationIcons.setDark(dark, false, 0);
         mShelfIcons.setDark(dark, false, 0);
