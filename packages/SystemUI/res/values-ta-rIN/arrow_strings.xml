@@ -72,7 +72,7 @@
     <string name="start">தொடக்கம்</string>
     <string name="center">மையம்</string>
     <string name="end">இறுதி</string>
-    <string name="space">Spacer</string>
+    <string name="space">ஸ்பேசர்</string>
     <string name="menu_ime">மெனு / விசைப்பலகை நிலைமாற்றி</string>
     <string name="select_button">சேர்க்க பொத்தானைத் தேர்ந்தெடு</string>
     <string name="add_button">பொத்தானை சேர்</string>
@@ -128,4 +128,9 @@ smartbar_left
     <!-- Notify use that they are in Lock-to-app (for devices without navbar)-->
     <string name="screen_pinning_toast_no_navbar">To unpin this screen, touch &amp; hold Back button</string>
     <string name="quick_settings_screenshot_label">திரைப்பிடிப்பு</string>
+    <!-- Screenshot Delete Toast -->
+    <string name="delete_screenshot_toast">Screenshot deleted</string>
+    <!-- Reboot/Recovery QS Tile -->
+    <string name="quick_settings_reboot_label">Reboot</string>
+    <string name="quick_settings_reboot_recovery_label">Recovery</string>
 </resources>

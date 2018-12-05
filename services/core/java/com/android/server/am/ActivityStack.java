@@ -2386,7 +2386,9 @@ class ActivityStack<T extends StackWindowController> extends ConfigurationContai
         // activity is paused, well that is the state we want.
         if (shouldSleepOrShutDownActivities()
                 && mLastPausedActivity == next
-                && mStackSupervisor.allPausedActivitiesComplete()) {
+                && mStackSupervisor.allPausedActivitiesComplete()
+                && !mStackSupervisor.getKeyguardController()
+                        .isKeyguardOrAodShowing(DEFAULT_DISPLAY)) {
             // Make sure we have executed any pending transitions, since there
             // should be nothing left to do at this point.
             executeAppTransition(options);
@@ -3855,7 +3857,7 @@ class ActivityStack<T extends StackWindowController> extends ConfigurationContai
             r.makeFinishingLocked();
             boolean activityRemoved = destroyActivityLocked(r, true, "finish-imm:" + reason);
 
-            if (finishingActivityInNonFocusedStack) {
+            if (finishingActivityInNonFocusedStack && mDisplayId != INVALID_DISPLAY) {
                 // Finishing activity that was in paused state and it was in not currently focused
                 // stack, need to make something visible in its place.
                 mStackSupervisor.ensureVisibilityAndConfig(next, mDisplayId,
