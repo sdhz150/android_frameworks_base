@@ -130,17 +130,17 @@
     <bool name="config_disableTransitionAnimation">false</bool>
 
     <!-- The duration (in milliseconds) of a short animation. -->
-    <integer name="config_shortAnimTime">200</integer>
+    <integer name="config_shortAnimTime">100</integer>
 
     <!-- The duration (in milliseconds) of a medium-length animation. -->
-    <integer name="config_mediumAnimTime">400</integer>
+    <integer name="config_mediumAnimTime">200</integer>
 
     <!-- The duration (in milliseconds) of a long animation. -->
-    <integer name="config_longAnimTime">500</integer>
+    <integer name="config_longAnimTime">250</integer>
 
     <!-- The duration (in milliseconds) of the activity open/close and fragment open/close animations. -->
-    <integer name="config_activityShortDur">150</integer>
-    <integer name="config_activityDefaultDur">220</integer>
+    <integer name="config_activityShortDur">75</integer>
+    <integer name="config_activityDefaultDur">110</integer>
 
     <!-- The duration (in milliseconds) of the tooltip show/hide animations. -->
     <integer name="config_tooltipAnimTime">150</integer>
@@ -3289,7 +3289,7 @@
          animations. Note that this is only a default and will be overridden by a
          user-set value if toggled by settings so the "Transition animation scale" setting
          should also be hidden if intended to be permanent. -->
-    <item name="config_appTransitionAnimationDurationScaleDefault" format="float" type="dimen">0.6</item>
+    <item name="config_appTransitionAnimationDurationScaleDefault" format="float" type="dimen">0.8</item>
 
     <!-- Flag indicates that whether non-system apps can be installed on internal storage. -->
     <bool name="config_allow3rdPartyAppOnInternal">true</bool>
@@ -3502,6 +3502,13 @@
          empty string is passed in -->
     <string name="config_wlan_network_service_package" translatable="false"></string>
 
+    <!-- One-handed mode feature is supported or not. -->
+    <bool name="config_onehanded_mode">true</bool>
+    <!-- Protect zone padding to ignore touch for onehand panel. -->
+    <dimen name="config_onehandProtectZonePadding">30dp</dimen>
+    <!-- Minimum swipe distance to catch the swipe gestures for onehand trigger. -->
+    <dimen name="config_onehandTriggerMinSwipeDistance">100dp</dimen>
+
     <!-- Wear devices: Controls the radios affected by Activity Mode. -->
     <string-array name="config_wearActivityModeRadios">
         <item>"wifi"</item>
@@ -3535,4 +3542,11 @@
 
     <!-- Brand value for attestation of misprovisioned device. -->
     <string name="config_misprovisionedBrandValue" translatable="false"></string>
+
+    <!-- Minimal height of bottom stack when IME is displayed -->
+    <dimen name="config_bottom_stack_minimal_height">0dp</dimen>
+  
+    <!-- Component name for default assistant on this device -->
+    <string name="config_defaultAssistantComponentName"></string>
+
 </resources>

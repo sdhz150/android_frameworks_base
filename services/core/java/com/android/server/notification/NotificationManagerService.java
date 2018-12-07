@@ -798,8 +798,27 @@ public class NotificationManagerService extends SystemService {
         @Override
         public void onNotificationError(int callingUid, int callingPid, String pkg, String tag, int id,
                 int uid, int initialPid, String message, int userId) {
-            cancelNotification(callingUid, callingPid, pkg, tag, id, 0, 0, false, userId,
-                    REASON_ERROR, null);
+            boolean fgService;
+            synchronized (mNotificationLock) {
+                NotificationRecord r = findNotificationLocked(pkg, tag, id, userId);
+                fgService = r != null && (r.getNotification().flags & FLAG_FOREGROUND_SERVICE) != 0;
+            }
+            String msg = "onNotification error pkg=" + pkg + " tag=" + tag + " id=" + id;
+            if (fgService) {
+                Slog.d(TAG, msg + "; will crashApplication(uid=" + uid
+                        + ", pid=" + initialPid + ")");
+            } else {
+                Slog.d(TAG, msg);
+            }
+            cancelNotification(callingUid, callingPid, pkg, tag, id, 0, 0,
+                    false, userId, REASON_ERROR, null);
+            if (fgService) {
+                // Still crash for foreground services, preventing the not-crash behaviour abused
+                // by apps to give us a garbage notification and silently start a fg service.
+                Binder.withCleanCallingIdentity(
+                    () -> mAm.crashApplication(uid, initialPid, pkg, -1,
+                        "Bad notification posted from package " + pkg + ": " + message));
+            }
         }
 
         @Override
@@ -5037,8 +5056,16 @@ public class NotificationManagerService extends SystemService {
                     try {
                         Thread.sleep(waitMs);
                     } catch (InterruptedException e) { }
-                    mVibrator.vibrate(record.sbn.getUid(), record.sbn.getOpPkg(),
-                            effect, record.getAudioAttributes());
+
+                    // Notifications might be canceled before it actually vibrates due to waitMs,
+                    // so need to check the notification still valide for vibrate.
+                    if (record.getKey().equals(mVibrateNotificationKey)
+                            && mNotificationsByKey.get(record.getKey()) != null) {
+                        mVibrator.vibrate(record.sbn.getUid(), record.sbn.getOpPkg(),
+                                effect, record.getAudioAttributes());
+                    } else {
+                        Slog.e(TAG, "No vibration for canceled notification : " + record.getKey());
+                    }
                 }).start();
             } else {
                 mVibrator.vibrate(record.sbn.getUid(), record.sbn.getOpPkg(),

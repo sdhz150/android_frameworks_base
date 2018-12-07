@@ -5938,6 +5938,7 @@ public class ActivityManagerService extends IActivityManager.Stub
     private final void handleAppDiedLocked$Pr(ProcessRecord app,
             boolean restarting, boolean allowRestart) {
         int pid = app.pid;
+        final boolean clearLaunchStartTime = !restarting && app.removed && app.foregroundActivities;
         boolean kept = cleanUpApplicationRecordLocked(app, restarting, allowRestart, -1,
                 false /*replacingPid*/);
         if (!kept && !restarting) {
@@ -5977,6 +5978,19 @@ public class ActivityManagerService extends IActivityManager.Stub
             }
         } finally {
             mWindowManager.continueSurfaceLayout();
+        }
+
+        // Hack for pi
+        // When an app process is removed, activities from the process may be relaunched. In the
+        // case of forceStopPackageLocked the activities are finished before any window is drawn,
+        // and the launch time is not cleared. This will be incorrectly used to calculate launch
+        // time for the next launched activity launched in the same windowing mode.
+        if (clearLaunchStartTime) {
+            final LaunchTimeTracker.Entry entry = mStackSupervisor
+                    .getLaunchTimeTracker().getEntry(mStackSupervisor.getWindowingMode());
+            if (entry != null) {
+                entry.mLaunchStartTime = 0;
+            }
         }
     }
 
@@ -7563,6 +7577,10 @@ public class ActivityManagerService extends IActivityManager.Stub
     @GuardedBy("this")
     private final void processContentProviderPublishTimedOutLocked(ProcessRecord app) {
         cleanupAppInLaunchingProvidersLocked(app, true);
+        if(MY_PID == app.pid) {
+            Slog.w(TAG, "do not remove system when provider publish timeout");
+            return;
+        }
         removeProcessLocked(app, false, true, "timeout publishing content providers");
     }
 
@@ -8920,6 +8938,7 @@ public class ActivityManagerService extends IActivityManager.Stub
                 }
 
                 final Runnable enterPipRunnable = () -> {
+                    if (r.finishing || r.getTask() == null) return;
                     // Only update the saved args from the args that are set
                     r.pictureInPictureArgs.copyOnlySet(params);
                     final float aspectRatio = r.pictureInPictureArgs.getAspectRatio();
@@ -23941,9 +23960,10 @@ public class ActivityManagerService extends IActivityManager.Stub
                     if ((cr.flags&Context.BIND_ADJUST_WITH_ACTIVITY) != 0) {
                         if (a != null && adj > ProcessList.FOREGROUND_APP_ADJ && (a.visible
                                 || a.isState(ActivityState.RESUMED, ActivityState.PAUSING))) {
-                            adj = ProcessList.FOREGROUND_APP_ADJ;
+                            int clientCurAdj = cr.binding.client.curAdj;
+                            adj = ProcessList.FOREGROUND_APP_ADJ > clientCurAdj ? ProcessList.FOREGROUND_APP_ADJ : clientCurAdj ;
                             if ((cr.flags&Context.BIND_NOT_FOREGROUND) == 0) {
-                                if ((cr.flags&Context.BIND_IMPORTANT) != 0) {
+                                if ((cr.flags&Context.BIND_IMPORTANT) != 0 && adj == ProcessList.FOREGROUND_APP_ADJ) {
                                     schedGroup = ProcessList.SCHED_GROUP_TOP_APP_BOUND;
                                 } else {
                                     schedGroup = ProcessList.SCHED_GROUP_DEFAULT;

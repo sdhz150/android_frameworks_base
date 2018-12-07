@@ -30,17 +30,22 @@ import android.animation.ValueAnimator;
 import android.annotation.DrawableRes;
 import android.annotation.StyleRes;
 import android.app.StatusBarManager;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.database.ContentObserver;
 import android.graphics.Canvas;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.drawable.AnimatedVectorDrawable;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemProperties;
+import android.os.UserHandle;
+import android.provider.Settings;
 import android.support.annotation.ColorInt;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -65,6 +70,7 @@ import com.android.systemui.OverviewProxyService;
 import com.android.systemui.R;
 import com.android.systemui.RecentsComponent;
 import com.android.systemui.SysUiServiceProvider;
+import com.android.systemui.onehand.SlideTouchEvent;
 import com.android.systemui.plugins.PluginListener;
 import com.android.systemui.plugins.PluginManager;
 import com.android.systemui.plugins.statusbar.phone.NavGesture;
@@ -156,6 +162,7 @@ public class NavigationBarView extends FrameLayout implements PluginListener<Nav
 
     private final SparseArray<ButtonDispatcher> mButtonDispatchers = new SparseArray<>();
     private Configuration mConfiguration;
+    private SlideTouchEvent mSlideTouchEvent;
 
     private NavigationBarInflaterView mNavigationInflaterView;
     private RecentsComponent mRecentsComponent;
@@ -293,6 +300,8 @@ public class NavigationBarView extends FrameLayout implements PluginListener<Nav
         mOverviewProxyService = Dependency.get(OverviewProxyService.class);
         mRecentsOnboarding = new RecentsOnboarding(context, mOverviewProxyService);
 
+        mSlideTouchEvent = new SlideTouchEvent(context);
+
         mConfiguration = new Configuration();
         mConfiguration.updateFrom(context.getResources().getConfiguration());
         reloadNavIcons();
@@ -339,6 +348,11 @@ public class NavigationBarView extends FrameLayout implements PluginListener<Nav
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent event) {
+        boolean onehandedEnabled = Settings.System.getIntForUser(mContext.getContentResolver(),
+                    Settings.System.ONE_HAND_MODE_ENABLED, 0, UserHandle.USER_CURRENT) == 1;
+        if (onehandedEnabled) {
+            mSlideTouchEvent.handleTouchEvent(event);
+        }
         final boolean deadZoneConsumed = shouldDeadZoneConsumeTouchEvents(event);
         switch (event.getActionMasked()) {
             case ACTION_DOWN:
@@ -364,6 +378,11 @@ public class NavigationBarView extends FrameLayout implements PluginListener<Nav
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        boolean onehandEnabled = Settings.System.getIntForUser(mContext.getContentResolver(),
+                    Settings.System.ONE_HAND_MODE_ENABLED, 0, UserHandle.USER_CURRENT) == 1;
+        if (onehandEnabled) {
+            mSlideTouchEvent.handleTouchEvent(event);
+        }
         shouldDeadZoneConsumeTouchEvents(event);
         if (mGestureHelper.onTouchEvent(event)) {
             return true;
