@@ -212,6 +212,10 @@ public class TaskView extends FixedSizeFrameLayout implements Task.TaskCallbacks
             R.dimen.recents_task_view_shadow_rounded_corners_radius));
     }
 
+    public TaskViewHeader getTaskViewHeader() {
+        return mHeaderView;
+    }
+
     /** Returns the view bounds. */
     AnimateableViewBounds getViewBounds() {
         return mViewBounds;

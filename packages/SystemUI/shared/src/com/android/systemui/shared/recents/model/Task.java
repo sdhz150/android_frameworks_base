@@ -160,6 +160,8 @@ public class Task {
     public boolean isSystemApp;
     @ViewDebug.ExportedProperty(category="recents")
     public boolean isDockable;
+    public boolean isLockedTask;
+    public String pkgName;
 
     /**
      * Resize mode. See {@link ActivityInfo#resizeMode}.
@@ -201,6 +203,8 @@ public class Task {
         this.resizeMode = resizeMode;
         this.topActivity = topActivity;
         this.isLocked = isLocked;
+        this.isLockedTask = false;
+        this.pkgName = this.key.baseIntent.getComponent().getPackageName();
     }
 
     /**
@@ -223,6 +227,8 @@ public class Task {
         this.resizeMode = o.resizeMode;
         this.isLocked = o.isLocked;
         this.topActivity = o.topActivity;
+        this.isLockedTask = o.isLockedTask;
+        this.pkgName = o.pkgName;
     }
 
     /**

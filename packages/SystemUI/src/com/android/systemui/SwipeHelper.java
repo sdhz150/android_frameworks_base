@@ -38,7 +38,9 @@ import com.android.systemui.plugins.statusbar.NotificationMenuRowPlugin;
 import com.android.systemui.plugins.statusbar.NotificationMenuRowPlugin.MenuItem;
 import com.android.systemui.statusbar.ExpandableNotificationRow;
 import com.android.systemui.statusbar.FlingAnimationUtils;
-
+import com.sudamod.sdk.recenttask.RecentTaskHelper;
+import com.android.systemui.recents.views.TaskView;
+import com.android.systemui.shared.recents.model.Task;
 public class SwipeHelper implements Gefingerpoken {
     static final String TAG = "com.android.systemui.SwipeHelper";
     private static final boolean DEBUG = false;
@@ -620,10 +622,31 @@ public class SwipeHelper implements Gefingerpoken {
                 float velocity = getVelocity(mVelocityTracker);
 
                 if (!handleUpEvent(ev, mCurrView, velocity, getTranslation(mCurrView))) {
-                    if (isDismissGesture(ev)) {
-                        // flingadingy
-                        dismissChild(mCurrView, velocity,
+                    float translation = getTranslation(mCurrView);
+                    RecentTaskHelper mRecentTaskHelper = RecentTaskHelper.getHelper(null);
+                    if (isDismissGesture(ev) && translation > 0) {
+                        TaskView tv = (TaskView) mCurrView;
+                        Task task = tv.getTask();
+                        if (task.isLockedTask){
+                            mCallback.onDragCancelled(mCurrView);
+                            snapChild(mCurrView, 0, velocity);
+                        } else {
+                            dismissChild(mCurrView, velocity,
                                 !swipedFastEnough() /* useAccelerateInterpolator */);
+                        } 
+                    }  else if (isDismissGesture(ev) && translation < 0) {
+                        TaskView tv = (TaskView) mCurrView;
+                        Task task = tv.getTask();
+                        if (task.isLockedTask){
+                            mRecentTaskHelper.removeLockTask(task.pkgName, null);
+                            task.isLockedTask = false;
+                        } else {
+                            mRecentTaskHelper.addNewLockTask(task.pkgName, null);
+                            task.isLockedTask = true;
+                        }
+                        tv.getTaskViewHeader().refreshBackground(task.useLightOnPrimaryColor,task.isLockedTask);
+                        mCallback.onDragCancelled(mCurrView);
+                        snapChild(mCurrView, 0, velocity);
                     } else {
                         // snappity
                         mCallback.onDragCancelled(mCurrView);

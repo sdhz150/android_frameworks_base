@@ -27,7 +27,7 @@ import com.android.systemui.shared.system.PackageManagerWrapper;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-
+import com.sudamod.sdk.recenttask.RecentTaskHelper;
 
 /**
  * The task stack contains a list of multiple tasks.
@@ -105,11 +105,14 @@ public class TaskStack {
      * Removes all tasks from the stack.
      */
     public void removeAllTasks(boolean notifyStackChanges) {
+        RecentTaskHelper mRecentTaskHelper = RecentTaskHelper.getHelper(null);
         ArrayList<Task> tasks = mStackTaskList.getTasks();
         for (int i = tasks.size() - 1; i >= 0; i--) {
             Task t = tasks.get(i);
+            if(!mRecentTaskHelper.isLockedTask(t.pkgName)) {
             mStackTaskList.remove(t);
             mRawTaskList.remove(t);
+            }
         }
         if (mCb != null && notifyStackChanges) {
             // Notify that all tasks have been removed

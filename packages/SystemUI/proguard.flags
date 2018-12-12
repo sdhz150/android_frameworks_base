@@ -16,6 +16,7 @@
 -keep class com.android.systemui.car.CarSystemUIFactory
 -keep class com.android.systemui.SystemUIFactory
 -keep class * extends com.android.systemui.SystemUI
+-dontwarn org.codehaus.mojo.**
 
 -keepclassmembers class ** {
     public void onBusEvent(**);
