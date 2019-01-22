@@ -126,7 +126,7 @@
 
     <!-- Tiles native to System UI. Order should match "quick_settings_tiles_default" -->
     <string name="quick_settings_tiles_stock" translatable="false">
-        wifi,cell,battery,dnd,flashlight,rotation,bt,airplane,nfc,location,hotspot,inversion,saver,work,cast,night,usb_tether,sync,sound,weather,hwkeys,caffeine,heads_up,screenshot,reboot
+        wifi,cell,battery,dnd,flashlight,rotation,bt,airplane,nfc,location,hotspot,inversion,saver,work,cast,night,usb_tether,sync,sound,weather,hwkeys,caffeine,heads_up,screenshot,reboot,navbardisable
     </string>
 
     <!-- The tiles to display in QuickSettings -->
@@ -502,4 +502,7 @@
 
     <!-- Whether to show VoLTE icon in the status bar -->
     <bool name="config_display_volte">true</bool>
+
+    <!-- Allow devices override audio panel location to the left side -->
+    <bool name="config_audioPanelOnLeftSide">false</bool>
 </resources>
