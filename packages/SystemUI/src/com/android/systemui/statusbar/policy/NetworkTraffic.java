@@ -26,16 +26,15 @@ import android.util.TypedValue;
 import android.view.View;
 import android.widget.TextView;
 
-import com.android.systemui.Dependency;
 import com.android.systemui.R;
-import com.android.systemui.statusbar.policy.DarkIconDispatcher.DarkReceiver;
+
 /*
 *
 * Seeing how an Integer object in java requires at least 16 Bytes, it seemed awfully wasteful
 * to only use it for a single boolean. 32-bits is plenty of room for what we need it to do.
 *
 */
-public class NetworkTraffic extends TextView implements DarkReceiver {
+public class NetworkTraffic extends TextView {
 
     private static final int INTERVAL = 1500; //ms
     private static final int KB = 1024;
@@ -56,8 +55,11 @@ public class NetworkTraffic extends TextView implements DarkReceiver {
     private long lastUpdateTime;
     private int txtSize;
     private int txtImgPadding;
+    private boolean mHideArrow;
     private int mAutoHideThreshold;
     private int mTintColor;
+
+    private boolean mScreenOn = true;
 
     private Handler mTrafficHandler = new Handler() {
         @Override
@@ -94,7 +96,7 @@ public class NetworkTraffic extends TextView implements DarkReceiver {
                 output += formatOutput(timeDelta, rxData, symbol);
 
                 // Update view if there's anything new to show
-                if (! output.contentEquals(getText())) {
+                if (!output.contentEquals(getText())) {
                     setTextSize(TypedValue.COMPLEX_UNIT_PX, (float)txtSize);
                     setText(output);
                 }
@@ -149,6 +151,9 @@ public class NetworkTraffic extends TextView implements DarkReceiver {
             resolver.registerContentObserver(Settings.System
                     .getUriFor(Settings.System.NETWORK_TRAFFIC_AUTOHIDE_THRESHOLD), false,
                     this, UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System
+                    .getUriFor(Settings.System.NETWORK_TRAFFIC_HIDEARROW), false,
+                    this, UserHandle.USER_ALL);
         }
 
         /*
@@ -198,9 +203,10 @@ public class NetworkTraffic extends TextView implements DarkReceiver {
             mAttached = true;
             IntentFilter filter = new IntentFilter();
             filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+            filter.addAction(Intent.ACTION_SCREEN_OFF);
+            filter.addAction(Intent.ACTION_SCREEN_ON);
             mContext.registerReceiver(mIntentReceiver, filter, null, getHandler());
         }
-        Dependency.get(DarkIconDispatcher.class).addDarkReceiver(this);
         updateSettings();
     }
 
@@ -211,15 +217,22 @@ public class NetworkTraffic extends TextView implements DarkReceiver {
             mContext.unregisterReceiver(mIntentReceiver);
             mAttached = false;
         }
-        Dependency.get(DarkIconDispatcher.class).removeDarkReceiver(this);
     }
 
     private final BroadcastReceiver mIntentReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (action != null && action.equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
+            if (action == null) return;
+
+            if (action.equals(ConnectivityManager.CONNECTIVITY_ACTION) && mScreenOn) {
                 updateSettings();
+            } else if (action.equals(Intent.ACTION_SCREEN_ON)) {
+                mScreenOn = true;
+                updateSettings();
+            } else if (action.equals(Intent.ACTION_SCREEN_OFF)) {
+                mScreenOn = false;
+                clearHandlerCallbacks();
             }
         }
     };
@@ -233,15 +246,13 @@ public class NetworkTraffic extends TextView implements DarkReceiver {
 
     private void updateSettings() {
         if (mIsEnabled) {
-            if (getConnectAvailable()) {
-                if (mAttached) {
-                    totalRxBytes = TrafficStats.getTotalRxBytes();
-                    lastUpdateTime = SystemClock.elapsedRealtime();
-                    mTrafficHandler.sendEmptyMessage(1);
-                }
-                updateTrafficDrawable();
-                return;
+            if (mAttached) {
+                totalRxBytes = TrafficStats.getTotalRxBytes();
+                lastUpdateTime = SystemClock.elapsedRealtime();
+                mTrafficHandler.sendEmptyMessage(1);
             }
+            updateTrafficDrawable();
+            return;
         } else {
             clearHandlerCallbacks();
         }
@@ -256,6 +267,9 @@ public class NetworkTraffic extends TextView implements DarkReceiver {
         mAutoHideThreshold = Settings.System.getIntForUser(resolver,
                 Settings.System.NETWORK_TRAFFIC_AUTOHIDE_THRESHOLD, 1,
                 UserHandle.USER_CURRENT);
+        mHideArrow = Settings.System.getIntForUser(resolver,
+                Settings.System.NETWORK_TRAFFIC_HIDEARROW, 0,
+                UserHandle.USER_CURRENT) == 1;
     }
 
     private void clearHandlerCallbacks() {
@@ -266,12 +280,12 @@ public class NetworkTraffic extends TextView implements DarkReceiver {
 
     private void updateTrafficDrawable() {
         int intTrafficDrawable;
-        if (mIsEnabled) {
+        if (mIsEnabled && !mHideArrow) {
             intTrafficDrawable = R.drawable.stat_sys_network_traffic_updown;
         } else {
             intTrafficDrawable = 0;
         }
-        if (intTrafficDrawable != 0) {
+        if (intTrafficDrawable != 0 && !mHideArrow) {
             Drawable d = getContext().getDrawable(intTrafficDrawable);
             d.setColorFilter(mTintColor, Mode.MULTIPLY);
             setCompoundDrawablePadding(txtImgPadding);
@@ -279,6 +293,7 @@ public class NetworkTraffic extends TextView implements DarkReceiver {
         } else {
             setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
         }
+        setTextColor(mTintColor);
     }
 
     public void onDensityOrFontScaleChanged() {
@@ -287,12 +302,5 @@ public class NetworkTraffic extends TextView implements DarkReceiver {
         txtImgPadding = resources.getDimensionPixelSize(R.dimen.net_traffic_multi_text_size);
         setTextSize(TypedValue.COMPLEX_UNIT_PX, (float)txtSize);
         setCompoundDrawablePadding(txtImgPadding);
-    }
-
-    @Override
-    public void onDarkChanged(Rect area, float darkIntensity, int tint) {
-        mTintColor = DarkIconDispatcher.getTint(area, this, tint);
-        setTextColor(mTintColor);
-        updateTrafficDrawable();
     }
 }
