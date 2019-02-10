@@ -27,6 +27,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.content.ComponentName;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.media.AudioManager;
@@ -65,6 +66,10 @@ import com.android.systemui.statusbar.policy.DarkIconDispatcher.DarkReceiver;
 import com.android.systemui.statusbar.policy.DateView;
 import com.android.systemui.statusbar.policy.NextAlarmController;
 import com.android.systemui.statusbar.policy.ZenModeController;
+
+import com.android.systemui.arrow.statusbarweather.StatusBarWeatherImage;
+import com.android.systemui.arrow.statusbarweather.StatusBarWeather;
+import com.android.systemui.statusbar.policy.NetworkTraffic;
 
 import java.util.Locale;
 import java.util.Objects;
@@ -125,6 +130,13 @@ public class QuickStatusBarHeader extends RelativeLayout implements
     private ZenModeController mZenController;
     /** Counts how many times the long press tooltip has been shown to the user. */
     private int mShownCount;
+
+    // Statusbar Weather Image
+    private StatusBarWeatherImage mWeatherImageView;
+    private StatusBarWeather mWeatherTextView;
+
+    // Statusbar Traffic
+    private NetworkTraffic mTraffic;
 
     private final BroadcastReceiver mRingerReceiver = new BroadcastReceiver() {
         @Override
@@ -189,6 +201,12 @@ public class QuickStatusBarHeader extends RelativeLayout implements
         mClockView.setOnClickListener(this);
         mDateView = findViewById(R.id.date);
         mDateView.setOnClickListener(this);
+	mWeatherTextView = findViewById(R.id.weather_temp);
+	mWeatherTextView.setOnClickListener(this);
+	mWeatherImageView = findViewById(R.id.weather_image);
+	mWeatherImageView.setOnClickListener(this);
+	mTraffic = findViewById(R.id.networkTraffic);
+	mTraffic.setOnClickListener(this);
     }
 
     private void updateStatusText() {
@@ -267,6 +285,9 @@ public class QuickStatusBarHeader extends RelativeLayout implements
                 newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE;
         mBatteryMeterView.useWallpaperTextColor(shouldUseWallpaperTextColor);
         mClockView.useWallpaperTextColor(shouldUseWallpaperTextColor);
+	mWeatherImageView.useWallpaperTextColor(shouldUseWallpaperTextColor);
+	mWeatherTextView.useWallpaperTextColor(shouldUseWallpaperTextColor);
+	mTraffic.useWallpaperTextColor(shouldUseWallpaperTextColor);
     }
 
     @Override
@@ -454,7 +475,19 @@ public class QuickStatusBarHeader extends RelativeLayout implements
             builder.appendPath(Long.toString(System.currentTimeMillis()));
             Intent todayIntent = new Intent(Intent.ACTION_VIEW, builder.build());
             Dependency.get(ActivityStarter.class).postStartActivityDismissingKeyguard(todayIntent, 0);
-        }
+        } else if (v == mWeatherImageView || v == mWeatherTextView) {
+	    Intent weatherIntent = new Intent();
+	    weatherIntent.setClassName("com.android.settings", "com.android.settings.Settings$ArrowWeather");
+	    weatherIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
+                        Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+            Dependency.get(ActivityStarter.class).postStartActivityDismissingKeyguard(weatherIntent, 0);
+	} else if (v == mTraffic) {
+	    Intent trafficIntent = new Intent();
+            trafficIntent.setClassName("com.android.settings", "com.android.settings.Settings$ArrowTraffic");
+            trafficIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
+                        Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+            Dependency.get(ActivityStarter.class).postStartActivityDismissingKeyguard(trafficIntent, 0);
+	}
     }
 
     @Override

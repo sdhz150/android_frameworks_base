@@ -26,6 +26,7 @@ import android.os.CancellationSignal;
 import android.os.OperationCanceledException;
 import android.provider.BaseColumns;
 import android.text.TextUtils;
+import android.util.ArrayMap;
 import android.util.Log;
 
 import libcore.util.EmptyArray;
@@ -42,8 +43,7 @@ import java.util.regex.Pattern;
  * This is a convenience class that helps build SQL queries to be sent to
  * {@link SQLiteDatabase} objects.
  */
-public class SQLiteQueryBuilder
-{
+public class SQLiteQueryBuilder {
     private static final String TAG = "SQLiteQueryBuilder";
     private static final Pattern sLimitPattern =
             Pattern.compile("\\s*\\d+\\s*(,\\s*\\d+\\s*)?");
@@ -99,7 +99,7 @@ public class SQLiteQueryBuilder
      *
      * @param inWhere the chunk of text to append to the WHERE clause.
      */
-    public void appendWhere(CharSequence inWhere) {
+    public void appendWhere(@NonNull CharSequence inWhere) {
         if (mWhereClause == null) {
             mWhereClause = new StringBuilder(inWhere.length() + 16);
         }
@@ -116,11 +116,32 @@ public class SQLiteQueryBuilder
      * @param inWhere the chunk of text to append to the WHERE clause. it will be escaped
      * to avoid SQL injection attacks
      */
-    public void appendWhereEscapeString(String inWhere) {
+    public void appendWhereEscapeString(@NonNull String inWhere) {
         if (mWhereClause == null) {
             mWhereClause = new StringBuilder(inWhere.length() + 16);
         }
         DatabaseUtils.appendEscapedSQLString(mWhereClause, inWhere);
+    }
+
+    /**
+     * Add a standalone chunk to the {@code WHERE} clause of this query.
+     * <p>
+     * This method differs from {@link #appendWhere(CharSequence)} in that it
+     * automatically appends {@code AND} to any existing {@code WHERE} clause
+     * already under construction before appending the given standalone
+     * expression wrapped in parentheses.
+     *
+     * @param inWhere the standalone expression to append to the {@code WHERE}
+     *            clause. It will be wrapped in parentheses when it's appended.
+     */
+    public void appendWhereStandalone(@NonNull CharSequence inWhere) {
+        if (mWhereClause == null) {
+            mWhereClause = new StringBuilder(inWhere.length() + 16);
+        }
+        if (mWhereClause.length() > 0) {
+            mWhereClause.append(" AND ");
+        }
+        mWhereClause.append('(').append(inWhere).append(')');
     }
 
     /**
@@ -435,7 +456,6 @@ public class SQLiteQueryBuilder
      *   that they appear in the selection. The values will be bound
      *   as Strings.
      * @return the number of rows updated
-     * @hide
      */
     public int update(@NonNull SQLiteDatabase db, @NonNull ContentValues values,
             @Nullable String selection, @Nullable String[] selectionArgs) {
@@ -473,12 +493,12 @@ public class SQLiteQueryBuilder
         if (selectionArgs == null) {
             selectionArgs = EmptyArray.STRING;
         }
-        final String[] rawKeys = values.keySet().toArray(EmptyArray.STRING);
-        final int valuesLength = rawKeys.length;
+        final ArrayMap<String, Object> rawValues = values.getValues();
+        final int valuesLength = rawValues.size();
         final Object[] sqlArgs = new Object[valuesLength + selectionArgs.length];
         for (int i = 0; i < sqlArgs.length; i++) {
             if (i < valuesLength) {
-                sqlArgs[i] = values.get(rawKeys[i]);
+                sqlArgs[i] = rawValues.valueAt(i);
             } else {
                 sqlArgs[i] = selectionArgs[i - valuesLength];
             }
@@ -506,7 +526,6 @@ public class SQLiteQueryBuilder
      *   that they appear in the selection. The values will be bound
      *   as Strings.
      * @return the number of rows deleted
-     * @hide
      */
     public int delete(@NonNull SQLiteDatabase db, @Nullable String selection,
             @Nullable String[] selectionArgs) {
@@ -605,7 +624,7 @@ public class SQLiteQueryBuilder
 
     /** {@hide} */
     public String buildUpdate(ContentValues values, String selection) {
-        if (values == null || values.size() == 0) {
+        if (values == null || values.isEmpty()) {
             throw new IllegalArgumentException("Empty values");
         }
 
@@ -614,12 +633,12 @@ public class SQLiteQueryBuilder
         sql.append(mTables);
         sql.append(" SET ");
 
-        final String[] rawKeys = values.keySet().toArray(EmptyArray.STRING);
-        for (int i = 0; i < rawKeys.length; i++) {
+        final ArrayMap<String, Object> rawValues = values.getValues();
+        for (int i = 0; i < rawValues.size(); i++) {
             if (i > 0) {
                 sql.append(',');
             }
-            sql.append(rawKeys[i]);
+            sql.append(rawValues.keyAt(i));
             sql.append("=?");
         }
 
