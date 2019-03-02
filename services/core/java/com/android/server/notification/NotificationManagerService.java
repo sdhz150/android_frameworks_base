@@ -803,13 +803,11 @@ public class NotificationManagerService extends SystemService {
                 NotificationRecord r = findNotificationLocked(pkg, tag, id, userId);
                 fgService = r != null && (r.getNotification().flags & FLAG_FOREGROUND_SERVICE) != 0;
             }
-            String msg = "onNotification error pkg=" + pkg + " tag=" + tag + " id=" + id;
+            String msg = "onNotificationError, pkg=" + pkg + ", tag=" + tag + ", id=" + id;
             if (fgService) {
-                Slog.d(TAG, msg + "; will crashApplication(uid=" + uid
-                        + ", pid=" + initialPid + ")");
-            } else {
-                Slog.d(TAG, msg);
+                msg += "; will crashApplication(uid=" + uid + ", pid=" + initialPid + ")";
             }
+            Slog.d(TAG, msg);
             cancelNotification(callingUid, callingPid, pkg, tag, id, 0, 0,
                     false, userId, REASON_ERROR, null);
             if (fgService) {
