@@ -85,7 +85,7 @@
     <string name="navbar_editor_summary">Skonfiguruj pasek nawigacji</string>
     <string name="statusbar_items_title">Ikony paska stanu</string>
     <!-- Indication on the keyguard that is shown when the device is charging with a dash charger. Should match keyguard_plugged_in_dash_charging [CHAR LIMIT=40]-->
-    <string name="keyguard_indication_dash_charging_time">Szybkie ładowanie (<xliff:g id="pozostały_czas" example="4 godziny i 2 minuty">%s</xliff:g> do pełnego naładowania)</string>
+    <string name="keyguard_indication_dash_charging_time"><xliff:g id="percentage">%2$s</xliff:g> • Dash Charging (<xliff:g id="charging_time_left" example="4 hours and 2 minutes">%s</xliff:g> until full)</string>
     <string name="keyguard_plugged_in_dash_charging">Szybkie ładowanie</string>
     <!-- Indication on the keyguard that is shown when the device is charging with a turbo power charger. Should match keyguard_plugged_in_turbo_power_charging [CHAR LIMIT=40]-->
     <string name="keyguard_indication_turbo_power_time">TurboPower podłączony (<xliff:g id="charging_time_left">%s</xliff:g> do pełnego naładowania)</string>
@@ -131,7 +131,7 @@
     <string name="quick_settings_reboot_label">Uruchom ponownie</string>
     <string name="quick_settings_reboot_recovery_label">Uruchom w trybie Recovery</string>
     <!-- navbar disable QS Tile -->
-    <string name="quick_settings_navbar_disable_label">Navbar</string>
-    <string name="accessibility_quick_settings_navbar_disable_on">Navbar disabled.</string>
-    <string name="accessibility_quick_settings_navbar_disable_off">Navbar enabled.</string>
+    <string name="quick_settings_navbar_disable_label">Pasek nawigacyjny</string>
+    <string name="accessibility_quick_settings_navbar_disable_on">Pasek nawigacyjny wyłączony.</string>
+    <string name="accessibility_quick_settings_navbar_disable_off">Pasek nawigacyjny włączony.</string>
 </resources>
