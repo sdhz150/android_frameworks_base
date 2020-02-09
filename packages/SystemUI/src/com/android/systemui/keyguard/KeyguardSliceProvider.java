@@ -70,6 +70,9 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
+import java.util.Calendar;
+import android.suda.lunar.Lunar;
+import android.suda.utils.SudaUtils;
 
 import com.android.systemui.omni.OmniJawsClient;
 
@@ -542,8 +545,16 @@ public class KeyguardSliceProvider extends SliceProvider implements
             format.setContext(DisplayContext.CAPITALIZATION_FOR_STANDALONE);
             mDateFormat = format;
         }
+	    String zhDate = "";
+	    if (SudaUtils.isSupportLanguage(true)) {
+                Calendar cal = Calendar.getInstance();
+	        cal.setTime(mCurrentTime);
+                Lunar lunar = new Lunar(cal);
+                zhDate = " " + lunar.toShortenSrting();
+	    }
+
         mCurrentTime.setTime(System.currentTimeMillis());
-        return mDateFormat.format(mCurrentTime);
+        return mDateFormat.format(mCurrentTime) + zhDate;
     }
 
     @VisibleForTesting
