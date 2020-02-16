@@ -507,6 +507,10 @@ public class NotificationPanelView extends PanelView implements
         });
     }
 
+    public void clearAllNotifications() {
+        mNotificationStackScroller.clearNotifications(ROWS_ALL, false);
+    }
+
     /**
      * Returns if there's a custom clock being presented.
      */
@@ -572,6 +576,7 @@ public class NotificationPanelView extends PanelView implements
         // Theme might have changed between inflating this view and attaching it to the window, so
         // force a call to onThemeChanged
         onThemeChanged();
+        clearAllNotifications();
     }
 
     @Override
