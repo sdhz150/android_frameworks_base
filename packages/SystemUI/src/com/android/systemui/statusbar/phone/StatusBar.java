@@ -69,6 +69,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.om.IOverlayManager;
 import android.content.pm.IPackageManager;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -222,6 +223,7 @@ import com.android.systemui.statusbar.notification.logging.NotificationLogger;
 import com.android.systemui.statusbar.notification.row.ExpandableNotificationRow;
 import com.android.systemui.statusbar.notification.row.NotificationGutsManager;
 import com.android.systemui.statusbar.notification.stack.NotificationListContainer;
+import com.android.systemui.statusbar.phone.BarTransitions.BarBackgroundDrawable;
 import com.android.systemui.statusbar.phone.UnlockMethodCache.OnUnlockMethodChangedListener;
 import com.android.systemui.statusbar.policy.BatteryController;
 import com.android.systemui.statusbar.policy.BatteryController.BatteryStateChangeCallback;
@@ -587,6 +589,7 @@ public class StatusBar extends SystemUI implements DemoMode,
     protected KeyguardMonitor mKeyguardMonitor;
     protected BatteryController mBatteryController;
     protected boolean mPanelExpanded;
+    private IOverlayManager mOverlayManager;
     private UiModeManager mUiModeManager;
     protected boolean mIsKeyguard;
     private LogMaker mStatusBarStateLog;
@@ -656,21 +659,38 @@ public class StatusBar extends SystemUI implements DemoMode,
             mContext.getContentResolver().registerContentObserver(Settings.System.getUriFor(
                     Settings.System.SHAKE_CLEAN_NOTIFICATION),
                     false, this, UserHandle.USER_ALL);
+            mContext.getContentResolver().registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.DISPLAY_CUTOUT_MODE),
+                    false, this, UserHandle.USER_ALL);
+            mContext.getContentResolver().registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.STOCK_STATUSBAR_IN_HIDE),
+                    false, this, UserHandle.USER_ALL);
+            mContext.getContentResolver().registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.FORCE_SHOW_NAVBAR),
+                    false, this, UserHandle.USER_ALL);
         }
 
         @Override
-        public void onChange(boolean selfChange) {
-            update();
+        public void onChange(boolean selfChange, Uri uri) {
+            if (uri.equals(Settings.System.getUriFor(Settings.System.DISPLAY_CUTOUT_MODE)) ||
+                    uri.equals(Settings.System.getUriFor(Settings.System.STOCK_STATUSBAR_IN_HIDE))) {
+                handleCutout(null);
+            } else if (uri.equals(Settings.System.getUriFor(Settings.System.FORCE_SHOW_NAVBAR))) {
+                updateNavigationBar(getRegisterStatusBarResult(), false);
+            }
         }
 
         public void update() {
+            updateNavigationBar(getRegisterStatusBarResult(), false);
             if (mStatusBarWindow != null) {
                 mStatusBarWindow.updateSettings();
             }
+            handleCutout(null);
         }
     }
 
     private CustomSettingsObserver mCustomSettingsObserver;
+    private boolean mShowNavBar;
 
     @Override
     public void onActiveStateChanged(int code, int uid, String packageName, boolean active) {
@@ -704,6 +724,7 @@ public class StatusBar extends SystemUI implements DemoMode,
 
         mUiModeManager = mContext.getSystemService(UiModeManager.class);
         mKeyguardViewMediator = getComponent(KeyguardViewMediator.class);
+        mNavigationBarSystemUiVisibility = mNavigationBarController.createSystemUiVisibility();
         mActivityIntentHelper = new ActivityIntentHelper(mContext);
 
         KeyguardSliceProvider sliceProvider = KeyguardSliceProvider.getAttachedInstance();
@@ -932,6 +953,7 @@ public class StatusBar extends SystemUI implements DemoMode,
                     if (mHeadsUpManager.hasPinnedHeadsUp()) {
                         mNotificationPanel.notifyBarPanelExpansionChanged();
                     }
+                    handleCutout(null);
                     mStatusBarView.setBouncerShowing(mBouncerShowing);
                     if (oldStatusBarView != null) {
                         float fraction = oldStatusBarView.getExpansionFraction();
@@ -974,7 +996,7 @@ public class StatusBar extends SystemUI implements DemoMode,
         mNotificationLogger.setHeadsUpManager(mHeadsUpManager);
         putComponent(HeadsUpManager.class, mHeadsUpManager);
 
-        createNavigationBar(result);
+        updateNavigationBar(result, true);
 
         if (ENABLE_LOCKSCREEN_WALLPAPER && mWallpaperSupported) {
             mLockscreenWallpaper = new LockscreenWallpaper(mContext, this, mHandler);
@@ -1221,6 +1243,8 @@ public class StatusBar extends SystemUI implements DemoMode,
         mNavigationBarController = Dependency.get(NavigationBarController.class);
         mUserSwitcherController = Dependency.get(UserSwitcherController.class);
         mVibratorHelper = Dependency.get(VibratorHelper.class);
+        mOverlayManager = IOverlayManager.Stub.asInterface(
+                ServiceManager.getService(Context.OVERLAY_SERVICE));
     }
 
     protected void setUpQuickSettingsTilePanel() {
@@ -1779,6 +1803,24 @@ public class StatusBar extends SystemUI implements DemoMode,
         updateTheme();
     }
 
+    private void setCutoutOverlay(boolean enable) {
+        try {
+            mOverlayManager.setEnabled("com.arrow.overlay.hidecutout",
+                        enable, mLockscreenUserManager.getCurrentUserId());
+        } catch (RemoteException e) {
+            Log.w(TAG, "Failed to handle cutout overlay", e);
+        }
+    }
+
+    private void setStatusBarStockOverlay(boolean enable) {
+        try {
+            mOverlayManager.setEnabled("com.arrow.overlay.statusbarstock",
+                        enable, mLockscreenUserManager.getCurrentUserId());
+        } catch (RemoteException e) {
+            Log.w(TAG, "Failed to handle statusbar height overlay", e);
+        }
+    }
+
     @Nullable
     public View getAmbientIndicationContainer() {
         return mAmbientIndicationContainer;
@@ -2277,6 +2319,16 @@ public class StatusBar extends SystemUI implements DemoMode,
         if (displayId != mDisplayId) {
             return;
         }
+
+        mNavigationBarSystemUiVisibility.displayId = displayId;
+        mNavigationBarSystemUiVisibility.vis = vis;
+        mNavigationBarSystemUiVisibility.fullscreenStackVis = fullscreenStackVis;
+        mNavigationBarSystemUiVisibility.dockedStackVis = dockedStackVis;
+        mNavigationBarSystemUiVisibility.mask = mask;
+        mNavigationBarSystemUiVisibility.fullscreenStackBounds = fullscreenStackBounds;
+        mNavigationBarSystemUiVisibility.dockedStackBounds = dockedStackBounds;
+        mNavigationBarSystemUiVisibility.navbarColorManagedByIme = navbarColorManagedByIme;
+
         final int oldVal = mSystemUiVisibility;
         final int newVal = (oldVal&~mask) | (vis&mask);
         final int diff = newVal ^ oldVal;
@@ -2864,6 +2916,7 @@ public class StatusBar extends SystemUI implements DemoMode,
 
         mViewHierarchyManager.updateRowStates();
         mScreenPinningRequest.onConfigurationChanged();
+        handleCutout(newConfig);
     }
 
     @Override
@@ -3960,6 +4013,32 @@ public class StatusBar extends SystemUI implements DemoMode,
         }
     };
 
+    private void setBlackStatusBar(boolean enable) {
+        if (mStatusBarView == null) return;
+        if (enable) {
+            ((BarBackgroundDrawable) mStatusBarView.getBackground()).setColorOverride(new Integer(0xFF000000));
+        } else {
+            ((BarBackgroundDrawable) mStatusBarView.getBackground()).setColorOverride(null);
+        }
+    }
+
+    private void handleCutout(Configuration newConfig) {
+        boolean immerseMode;
+        if (newConfig == null || newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            immerseMode = Settings.System.getIntForUser(mContext.getContentResolver(),
+                        Settings.System.DISPLAY_CUTOUT_MODE, 0, UserHandle.USER_CURRENT) == 1;
+        } else {
+            immerseMode = false;
+        }
+        final boolean hideCutoutMode = Settings.System.getIntForUser(mContext.getContentResolver(),
+                        Settings.System.DISPLAY_CUTOUT_MODE, 0, UserHandle.USER_CURRENT) == 2;
+        final boolean statusBarStock = Settings.System.getIntForUser(mContext.getContentResolver(),
+                        Settings.System.STOCK_STATUSBAR_IN_HIDE, 1, UserHandle.USER_CURRENT) == 1;
+        setBlackStatusBar(immerseMode);
+        setCutoutOverlay(hideCutoutMode);
+        setStatusBarStockOverlay(hideCutoutMode && statusBarStock);
+    }
+
     public int getWakefulnessState() {
         return mWakefulnessLifecycle.getWakefulness();
     }
@@ -4438,6 +4517,7 @@ public class StatusBar extends SystemUI implements DemoMode,
             Dependency.get(DeviceProvisionedController.class);
 
     protected NavigationBarController mNavigationBarController;
+    private NavigationBarController.SystemUiVisibility mNavigationBarSystemUiVisibility;
 
     // UI-specific methods
 
@@ -4803,4 +4883,31 @@ public class StatusBar extends SystemUI implements DemoMode,
         return mStatusBarMode;
     }
 
+    private RegisterStatusBarResult getRegisterStatusBarResult() {
+        RegisterStatusBarResult result = null;
+        try {
+            result = mBarService.registerStatusBar(mCommandQueue);
+        } catch (RemoteException ex) {
+            ex.rethrowFromSystemServer();
+        }
+        return result;
+    }
+
+    private void updateNavigationBar(@Nullable RegisterStatusBarResult result, boolean init) {
+        boolean showNavBar = ArrowUtils.deviceSupportNavigationBar(mContext);
+        if (init) {
+            if (showNavBar) {
+                mNavigationBarController.createNavigationBars(true, result);
+            }
+        } else {
+            if (showNavBar != mShowNavBar) {
+                if (showNavBar) {
+                    mNavigationBarController.recreateNavigationBars(true, result, mNavigationBarSystemUiVisibility);
+                } else {
+                    mNavigationBarController.removeNavigationBar(mDisplayId);
+                }
+            }
+        }
+        mShowNavBar = showNavBar;
+    }
 }

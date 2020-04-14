@@ -4576,6 +4576,15 @@ public final class Settings {
         public static final String COLOR_BUCKET_OVERLAY = "color_bucket_overlay";
 
         /**
+         * @hide
+         */
+        public static final String FORCE_SHOW_NAVBAR = "navigation_bar_show_new";
+
+        /** @hide */
+        private static final Validator FORCE_SHOW_NAVBAR_VALIDATOR =
+                ANY_INTEGER_VALIDATOR;
+
+        /**
          * Number of qs columns on landscape orientation
          * @hide
          */
@@ -4959,6 +4968,26 @@ public final class Settings {
         public static final String QS_SHOW_BRIGHTNESS_ICON = "qs_show_brightness_icon";
 
         /**
+         * Control how to handle the display cutout
+         * @hide
+         */
+        public static final String DISPLAY_CUTOUT_MODE = "display_cutout_mode";
+
+        /** @hide */
+        private static final Validator DISPLAY_CUTOUT_MODE_VALIDATOR = new
+                SettingsValidators.InclusiveIntegerRangeValidator(0, 2);
+
+        /**
+         * Control how to handle the display cutout
+         * @hide
+         */
+        public static final String STOCK_STATUSBAR_IN_HIDE = "stock_statusbar_in_hide";
+
+        /** @hide */
+        private static final Validator STOCK_STATUSBAR_IN_HIDE_VALIDATOR =
+                BOOLEAN_VALIDATOR;
+
+        /**
          * Shows custom date before clock time
          * 0 - No Date
          * 1 - Small Date
@@ -5071,7 +5100,10 @@ public final class Settings {
             VOLUME_ROCKER_WAKE,
             VOLUME_BUTTON_MUSIC_CONTROL,
             BACK_GESTURE_HEIGHT,
-            GESTURE_PILL_TOGGLE
+            GESTURE_PILL_TOGGLE,
+            DISPLAY_CUTOUT_MODE,
+            STOCK_STATUSBAR_IN_HIDE,
+            FORCE_SHOW_NAVBAR,
         };
 
         /**
@@ -5224,6 +5256,9 @@ public final class Settings {
             PRIVATE_SETTINGS.add(PROXIMITY_ON_WAKE);
             PRIVATE_SETTINGS.add(BACK_GESTURE_HEIGHT);
             PRIVATE_SETTINGS.add(GESTURE_PILL_TOGGLE);
+            PRIVATE_SETTINGS.add(DISPLAY_CUTOUT_MODE);
+            PRIVATE_SETTINGS.add(STOCK_STATUSBAR_IN_HIDE);
+            PRIVATE_SETTINGS.add(FORCE_SHOW_NAVBAR);
         }
 
         /**
@@ -5341,6 +5376,9 @@ public final class Settings {
             VALIDATORS.put(PROXIMITY_ON_WAKE, PROXIMITY_ON_WAKE_VALIDATOR);
             VALIDATORS.put(BACK_GESTURE_HEIGHT, BACK_GESTURE_HEIGHT_VALIDATOR);
             VALIDATORS.put(GESTURE_PILL_TOGGLE, GESTURE_PILL_TOGGLE_VALIDATOR);
+            VALIDATORS.put(DISPLAY_CUTOUT_MODE, DISPLAY_CUTOUT_MODE_VALIDATOR);
+            VALIDATORS.put(STOCK_STATUSBAR_IN_HIDE, STOCK_STATUSBAR_IN_HIDE_VALIDATOR);
+            VALIDATORS.put(FORCE_SHOW_NAVBAR, FORCE_SHOW_NAVBAR_VALIDATOR);
         }
 
         /**
