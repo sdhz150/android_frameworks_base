@@ -87,10 +87,14 @@ public interface DozeHost {
          * @param active whether power save is active or not
          */
         default void onPowerSaveChanged(boolean active) {}
+
+        default void toggleFlashlightProximityCheck() {}
     }
 
     interface PulseCallback {
         void onPulseStarted();
         void onPulseFinished();
     }
+
+    void performToggleFlashlight();
 }

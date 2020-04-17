@@ -2024,23 +2024,18 @@ public class StatusBar extends SystemUI implements DemoMode,
 
     @Override
     public void toggleCameraFlash() {
-        if (DEBUG) {
-            Log.d(TAG, "Toggling camera flashlight");
+        if (!isScreenFullyOff() && mDeviceInteractive && !mPulsing && !mDozing) {
+            toggleFlashlight();
+            return;
         }
-        if (mFlashlightController.isAvailable()) {
-            mFlashlightController.setFlashlight(!mFlashlightController.isEnabled());
-        }
+        mDozeServiceHost.toggleFlashlightProximityCheck();
     }
 
-
-    @Override
-    public void toggleCameraFlashState(boolean enable) {
-        if (DEBUG) {
-            Log.d(TAG, "Disabling camera flashlight");
-        }
+    private void toggleFlashlight() {
         if (mFlashlightController != null) {
+            mFlashlightController.initFlashLight();
             if (mFlashlightController.hasFlashlight() && mFlashlightController.isAvailable()) {
-                mFlashlightController.setFlashlight(enable);
+                mFlashlightController.setFlashlight(!mFlashlightController.isEnabled());
             }
         }
     }
@@ -2640,10 +2635,6 @@ public class StatusBar extends SystemUI implements DemoMode,
         pw.println("SharedPreferences:");
         for (Map.Entry<String, ?> entry : Prefs.getAll(mContext).entrySet()) {
             pw.print("  "); pw.print(entry.getKey()); pw.print("="); pw.println(entry.getValue());
-        }
-
-        if (mFlashlightController != null) {
-            mFlashlightController.dump(fd, pw, args);
         }
     }
 
@@ -4477,6 +4468,17 @@ public class StatusBar extends SystemUI implements DemoMode,
 
         public boolean shouldAnimateScreenOff() {
             return mAnimateScreenOff;
+        }
+
+        public void toggleFlashlightProximityCheck() {
+            for (Callback callback : mCallbacks) {
+                callback.toggleFlashlightProximityCheck();
+            }
+        }
+
+        @Override
+        public void performToggleFlashlight() {
+            toggleFlashlight();
         }
     }
 
